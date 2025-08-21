@@ -78,22 +78,36 @@ export function ProjectManagement() {
   }
   
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
       {/* 顶部导航 */}
-      <nav className="bg-white shadow">
+      <nav className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-lg sm:text-xl font-semibold text-gray-900">团队协作工具</h1>
+            <div className="flex items-center space-x-4">
+              <div className="h-8 w-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900">团队协作工具</h1>
             </div>
-            <div className="flex items-center space-x-2 sm:space-x-4">
-              <span className="hidden sm:block text-sm text-gray-700">欢迎，{user?.name}</span>
-              <span className="sm:hidden text-xs text-gray-700 truncate max-w-20">{user?.name}</span>
+            <div className="flex items-center space-x-4">
+              <div className="hidden sm:flex items-center space-x-3">
+                <div className="h-8 w-8 bg-gray-100 rounded-full flex items-center justify-center">
+                  <span className="text-sm font-medium text-gray-600">
+                    {user?.name?.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <span className="text-sm text-gray-700">欢迎，{user?.name}</span>
+              </div>
               <button
                 onClick={handleLogout}
-                className="text-xs sm:text-sm text-gray-500 hover:text-gray-700"
+                className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                退出登录
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                <span className="hidden sm:block">退出登录</span>
               </button>
             </div>
           </div>
@@ -101,75 +115,89 @@ export function ProjectManagement() {
       </nav>
       
       {/* 主要内容 */}
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 space-y-4 sm:space-y-0">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">项目管理</h2>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center justify-center px-3 sm:px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              <PlusIcon className="-ml-1 mr-2 h-4 sm:h-5 w-4 sm:w-5" />
-              创建项目
-            </button>
+      <div className="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8">
+        <div className="px-4 sm:px-0">
+          {/* 页面标题区域 */}
+          <div className="mb-8">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end mb-6 space-y-4 sm:space-y-0">
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">项目管理</h2>
+                <p className="text-gray-600">创建和管理您的团队协作项目</p>
+              </div>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-sm font-medium rounded-xl shadow-lg text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 hover:shadow-xl"
+              >
+                <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
+                创建新项目
+              </button>
+            </div>
           </div>
           
           {projects.length === 0 ? (
-            <div className="text-center py-12">
-              <h3 className="mt-2 text-sm font-medium text-gray-900">暂无项目</h3>
-              <p className="mt-1 text-sm text-gray-500">开始创建您的第一个项目吧。</p>
-              <div className="mt-6">
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
-                  创建项目
-                </button>
+            <div className="text-center py-16">
+              <div className="mx-auto h-24 w-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                <svg className="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
               </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">暂无项目</h3>
+              <p className="text-gray-500 mb-8 max-w-sm mx-auto">开始创建您的第一个项目，让团队协作更加高效。</p>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="inline-flex items-center px-6 py-3 border border-transparent shadow-lg text-sm font-medium rounded-xl text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 hover:shadow-xl"
+              >
+                <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
+                创建第一个项目
+              </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {projects.map((project) => (
-                <div key={project.id} className="bg-white overflow-hidden shadow rounded-lg">
-                  <div className="p-4 sm:p-6">
-                    <div className="flex items-start justify-between">
-                      <h3 className="text-base sm:text-lg font-medium text-gray-900 truncate pr-2">
-                        {project.name}
-                      </h3>
-                      <div className="flex space-x-1 sm:space-x-2 flex-shrink-0">
+                <div key={project.id} className="group bg-white/80 backdrop-blur-sm overflow-hidden shadow-lg rounded-2xl border border-gray-200/50 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                  <div className="p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-lg font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
+                          {project.name}
+                        </h3>
+                        {project.description && (
+                          <p className="mt-2 text-sm text-gray-600 line-clamp-2">
+                            {project.description}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex space-x-1 ml-4 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => setEditingProject(project)}
-                          className="text-gray-400 hover:text-gray-600 p-1"
+                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="编辑项目"
                         >
-                          <PencilIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                          <PencilIcon className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteProject(project.id)}
-                          className="text-gray-400 hover:text-red-600 p-1"
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="删除项目"
                         >
-                          <TrashIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                          <TrashIcon className="h-4 w-4" />
                         </button>
                       </div>
                     </div>
-                    {project.description && (
-                      <p className="mt-2 text-xs sm:text-sm text-gray-600 line-clamp-2">
-                        {project.description}
-                      </p>
-                    )}
-                    <div className="mt-3 sm:mt-4 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                    
+                    <div className="flex flex-col sm:flex-row gap-3 mt-6">
                       <Link
                         to={`/project/${project.id}`}
-                        className="inline-flex items-center justify-center px-3 py-1.5 sm:py-1 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200"
+                        className="flex-1 inline-flex items-center justify-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg"
                       >
-                        <EyeIcon className="-ml-0.5 mr-1 h-3 w-3 sm:h-4 sm:w-4" />
-                        查看
+                        <EyeIcon className="-ml-1 mr-2 h-4 w-4" />
+                        进入项目
                       </Link>
                       <button
                         onClick={() => copyAccessLink(project.token)}
-                        className="inline-flex items-center justify-center px-3 py-1.5 sm:py-1 border border-transparent text-xs font-medium rounded text-green-700 bg-green-100 hover:bg-green-200"
+                        className="flex-1 inline-flex items-center justify-center px-4 py-2.5 border border-gray-200 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 shadow-sm hover:shadow-md"
                       >
-                        <LinkIcon className="-ml-0.5 mr-1 h-3 w-3 sm:h-4 sm:w-4" />
+                        <LinkIcon className="-ml-1 mr-2 h-4 w-4" />
                         复制链接
                       </button>
                     </div>

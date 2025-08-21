@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { ChevronDownIcon } from '@heroicons/react/24/outline'
+import { ChevronDownIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import { getProjectByToken, verifyProjectPassword, getProjectTabs } from '../lib/projects'
 import type { Project, Tab } from '../lib/supabase'
 
@@ -17,6 +17,8 @@ export function ProjectAccess() {
   const [showDropdown, setShowDropdown] = useState(false)
   const [visibleTabs, setVisibleTabs] = useState<Tab[]>([])
   const [hiddenTabs, setHiddenTabs] = useState<Tab[]>([])
+  const [iframeError, setIframeError] = useState<string>('')
+  const [iframeLoading, setIframeLoading] = useState<boolean>(false)
   
   useEffect(() => {
     if (token) {
@@ -99,6 +101,22 @@ export function ProjectAccess() {
   const handleTabClick = (tab: Tab) => {
     setActiveTab(tab)
     setShowDropdown(false)
+    setIframeError('')
+    setIframeLoading(true)
+  }
+  
+  const handleIframeLoad = () => {
+    setIframeLoading(false)
+    setIframeError('')
+  }
+  
+  const handleIframeError = () => {
+    setIframeLoading(false)
+    setIframeError('无法加载此页面，可能是网络问题或目标网站不允许嵌入显示')
+  }
+  
+  const openInNewTab = (url: string) => {
+    window.open(url, '_blank', 'noopener,noreferrer')
   }
   
   if (isLoading) {
@@ -239,13 +257,60 @@ export function ProjectAccess() {
       {/* 内容区域 */}
       <div className="h-[calc(100vh-4rem)]">
         {activeTab ? (
-          <iframe
-            src={activeTab.url}
-            className="w-full h-full border-0"
-            title={activeTab.name}
-            onLoad={() => console.log(`Loaded: ${activeTab.name}`)}
-            onError={() => console.error(`Failed to load: ${activeTab.name}`)}
-          />
+          <div className="w-full h-full relative">
+            {iframeLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                  <p className="text-sm text-gray-600">正在加载 {activeTab.name}...</p>
+                </div>
+              </div>
+            )}
+            
+            {iframeError ? (
+              <div className="w-full h-full flex items-center justify-center bg-gray-50">
+                <div className="text-center max-w-md mx-auto p-6">
+                  <ExclamationTriangleIcon className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">页面加载失败</h3>
+                  <p className="text-sm text-gray-600 mb-4">{iframeError}</p>
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => {
+                        setIframeError('')
+                        setIframeLoading(true)
+                        // 强制重新加载iframe
+                        const iframe = document.querySelector('iframe')
+                        if (iframe) {
+                          iframe.src = iframe.src
+                        }
+                      }}
+                      className="w-full px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                      重新加载
+                    </button>
+                    <button
+                      onClick={() => openInNewTab(activeTab.url)}
+                      className="w-full px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                    >
+                      在新标签页中打开
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-3">
+                    目标地址: <span className="font-mono">{activeTab.url}</span>
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <iframe
+                src={activeTab.url}
+                className="w-full h-full border-0"
+                title={activeTab.name}
+                onLoad={handleIframeLoad}
+                onError={handleIframeError}
+                sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation"
+              />
+            )}
+          </div>
         ) : (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">

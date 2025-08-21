@@ -14,13 +14,10 @@ export async function signIn(email: string, password: string) {
 
 // Google OAuth登录
 export async function signInWithGoogle() {
-  // 获取应用URL，优先使用环境变量，回退到当前域名
-  const appUrl = import.meta.env.VITE_APP_URL || window.location.origin
-  
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${appUrl}/admin/projects`,
+      redirectTo: `${window.location.origin}/admin/login`,
       queryParams: {
         access_type: 'offline',
         prompt: 'consent'
@@ -28,7 +25,10 @@ export async function signInWithGoogle() {
     }
   })
   
-  if (error) throw error
+  if (error) {
+    throw error
+  }
+  
   return data
 }
 
@@ -49,6 +49,27 @@ export async function signUp(email: string, password: string, name: string) {
   return data
 }
 
+// 自动设置Google用户为管理员
+export async function ensureGoogleUserIsAdmin() {
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (user && user.app_metadata?.provider === 'google') {
+    // 检查用户是否已经是管理员
+    if (!user.user_metadata?.is_admin) {
+      // 设置Google用户为管理员
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          is_admin: true
+        }
+      })
+      
+      if (error) {
+        console.error('Error setting Google user as admin:', error)
+      }
+    }
+  }
+}
+
 // 登出
 export async function signOut() {
   const { error } = await supabase.auth.signOut()
@@ -61,12 +82,19 @@ export async function getCurrentUser(): Promise<User | null> {
   
   if (!user) return null
   
+  // 如果是Google用户，自动设置为管理员
+  let isAdmin = user.user_metadata?.is_admin || false
+  if (user.app_metadata?.provider === 'google' && !isAdmin) {
+    await ensureGoogleUserIsAdmin()
+    isAdmin = true
+  }
+  
   // 直接返回Supabase Auth用户信息，添加管理员标识
   return {
     id: user.id,
     email: user.email || '',
     name: user.user_metadata?.name || user.email || '',
-    is_admin: user.user_metadata?.is_admin || false,
+    is_admin: isAdmin,
     created_at: user.created_at,
     updated_at: user.updated_at
   }

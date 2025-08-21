@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { User } from '../lib/supabase'
-import { getCurrentUser, onAuthStateChange } from '../lib/auth'
+import { getCurrentUser, onAuthStateChange, ensureGoogleUserIsAdmin } from '../lib/auth'
 
 interface AuthState {
   user: User | null
@@ -43,8 +43,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       })
     
     // 监听认证状态变化
-    onAuthStateChange((user) => {
+    onAuthStateChange(async (user) => {
       if (user) {
+        // 如果是Google用户，确保设置为管理员
+        if (user.app_metadata?.provider === 'google') {
+          await ensureGoogleUserIsAdmin()
+        }
+        
         getCurrentUser().then((userData) => {
           get().setUser(userData)
         })
