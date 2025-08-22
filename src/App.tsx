@@ -3,14 +3,18 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useAuthStore } from './store/authStore'
 import { Layout, AdminLayout, ProjectLayout } from './components/Layout'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { DevDebugPanel, useDevDebugPanel } from './components/DevDebugPanel'
+import { Toaster } from './components/ui/toaster'
 import { AdminLogin } from './pages/AdminLogin'
 import { ProjectManagement } from './pages/ProjectManagement'
 import { MainWorkspace } from './pages/MainWorkspace'
 import { ProjectAccess } from './pages/ProjectAccess'
 import { TabManagement } from './pages/TabManagement'
+import { isDevelopment } from './lib/devUtils'
 
 function App() {
   const { initialize } = useAuthStore()
+  const debugPanel = useDevDebugPanel()
   
   useEffect(() => {
     initialize()
@@ -18,6 +22,14 @@ function App() {
   
   return (
     <Router>
+      {/* 开发者调试面板 */}
+      {isDevelopment() && (
+        <DevDebugPanel 
+          isOpen={debugPanel.isOpen} 
+          onClose={debugPanel.close} 
+        />
+      )}
+      
       <Routes>
         {/* 公开路由 */}
         <Route path="/admin/login" element={<AdminLogin />} />
@@ -62,6 +74,7 @@ function App() {
           </Layout>
         } />
       </Routes>
+      <Toaster />
     </Router>
   )
 }

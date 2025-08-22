@@ -7,7 +7,7 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {children || <Outlet />}
     </div>
   )
@@ -16,7 +16,7 @@ export function Layout({ children }: LayoutProps) {
 // 管理员布局
 export function AdminLayout({ children }: LayoutProps) {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {children || <Outlet />}
       </div>
@@ -27,7 +27,7 @@ export function AdminLayout({ children }: LayoutProps) {
 // 项目访问布局
 export function ProjectLayout({ children }: LayoutProps) {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       {children || <Outlet />}
     </div>
   )

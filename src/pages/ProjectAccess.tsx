@@ -1,6 +1,12 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
-import { ChevronDownIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
+import { ChevronDown, AlertTriangle, Lock, Loader2, FolderOpen, RotateCcw, ExternalLink } from 'lucide-react'
+import { Button } from '../components/ui/button'
+import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
+import { Avatar, AvatarFallback } from '../components/ui/avatar'
+import { Badge } from '../components/ui/badge'
 import { getProjectByToken, verifyProjectPassword, getProjectTabs } from '../lib/projects'
 import type { Project, Tab } from '../lib/supabase'
 
@@ -15,6 +21,7 @@ export function ProjectAccess() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [showDropdown, setShowDropdown] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const [visibleTabs, setVisibleTabs] = useState<Tab[]>([])
   const [hiddenTabs, setHiddenTabs] = useState<Tab[]>([])
   const [iframeError, setIframeError] = useState<string>('')
@@ -40,6 +47,23 @@ export function ProjectAccess() {
       }
     }
   }, [tabs, activeTab])
+
+  // 处理点击外部关闭下拉菜单
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false)
+      }
+    }
+
+    if (showDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showDropdown])
   
   const loadProject = async () => {
     if (!token) return
@@ -122,7 +146,7 @@ export function ProjectAccess() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <Loader2 className="h-32 w-32 animate-spin text-primary" />
       </div>
     )
   }
@@ -131,8 +155,8 @@ export function ProjectAccess() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">访问失败</h1>
-          <p className="text-gray-600">{error}</p>
+          <h1 className="text-2xl font-bold text-foreground mb-4">访问失败</h1>
+          <p className="text-muted-foreground">{error}</p>
         </div>
       </div>
     )
@@ -140,108 +164,134 @@ export function ProjectAccess() {
   
   if (isPasswordRequired) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="max-w-md w-full space-y-8">
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="max-w-lg w-full space-y-10 p-8">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900">{project?.name}</h2>
-            <p className="mt-2 text-sm text-gray-600">此项目需要密码访问</p>
+            <div className="mx-auto h-20 w-20 bg-primary rounded-2xl flex items-center justify-center mb-8">
+              <Lock className="h-10 w-10 text-primary-foreground" />
+            </div>
+            <h2 className="text-4xl font-bold text-primary mb-3">{project?.name}</h2>
+            <p className="text-muted-foreground text-lg">此项目需要密码访问</p>
           </div>
           
-          <form onSubmit={handlePasswordSubmit} className="mt-8 space-y-6">
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-                {error}
-              </div>
-            )}
-            
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                访问密码
-              </label>
-              <input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                placeholder="请输入访问密码"
-              />
-            </div>
-            
-            <button
-              type="submit"
-              disabled={isVerifying}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-            >
-              {isVerifying ? '验证中...' : '访问项目'}
-            </button>
-          </form>
+          <Card>
+            <CardContent className="p-10">
+              <form onSubmit={handlePasswordSubmit} className="space-y-8">
+                {error && (
+                  <div className="bg-destructive/10 border border-destructive/20 text-destructive px-5 py-4 rounded-xl">
+                    {error}
+                  </div>
+                )}
+                
+                <div className="space-y-2">
+                  <Label htmlFor="password">访问密码</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="text-lg h-12"
+                    placeholder="请输入访问密码"
+                  />
+                </div>
+                
+                <Button
+                  type="submit"
+                  disabled={isVerifying}
+                  size="lg"
+                  className="w-full"
+                >
+                  {isVerifying ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      验证中...
+                    </>
+                  ) : (
+                    '访问项目'
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+          
+          {/* 开发者致谢 */}
+          <div className="text-center">
+            <Badge variant="secondary" className="text-sm px-6 py-3">
+              💝 感谢您参与Shane的本个项目，开发不易，携手同行！
+            </Badge>
+          </div>
         </div>
       </div>
     )
   }
   
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       {/* 导航栏 */}
-      <nav className="bg-gray-800 h-16">
-        <div className="max-w-full mx-auto px-2 sm:px-4 h-full">
-          <div className="flex items-center h-full">
+      <nav className="bg-card border-b h-16 w-full">
+        <div className="w-full px-6">
+          <div className="flex items-center justify-between h-full">
             {/* 项目名称 */}
-            <div className="flex-shrink-0 w-32 sm:w-40 md:w-48">
-              <h1 className="text-white text-sm sm:text-base md:text-lg font-medium truncate" title={project?.name}>
+            <div className="flex items-center space-x-4 min-w-0 flex-shrink-0 w-64">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="text-sm font-medium">
+                  {project?.name?.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <h1 className="text-foreground text-lg font-semibold truncate" title={project?.name}>
                 {project?.name}
               </h1>
             </div>
             
             {/* 标签页区域 */}
-            <div className="flex-1 flex items-center justify-center px-2 sm:px-4 overflow-hidden">
-              <div className="flex items-center space-x-1 overflow-x-auto scrollbar-hide">
+            <div className="flex-1 flex items-center justify-center px-6 overflow-hidden">
+              <div className="flex items-center space-x-3 overflow-x-auto scrollbar-hide max-w-full">
                 {/* 可见标签页 */}
                 {visibleTabs.map((tab) => (
-                  <button
+                  <Button
                     key={tab.id}
                     onClick={() => handleTabClick(tab)}
-                    className={`flex-shrink-0 px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
-                      activeTab?.id === tab.id
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-300 hover:bg-gray-700 hover:text-white'
-                    }`}
+                    variant={activeTab?.id === tab.id ? "default" : "outline"}
+                    size="sm"
+                    className="flex-shrink-0 whitespace-nowrap transition-all duration-300 h-9"
                   >
                     {tab.name}
-                  </button>
+                  </Button>
                 ))}
                 
                 {/* 下拉菜单按钮 */}
                 {hiddenTabs.length > 0 && (
-                  <div className="relative flex-shrink-0">
-                    <button
+                  <div ref={dropdownRef} className="relative flex-shrink-0">
+                    <Button
                       onClick={() => setShowDropdown(!showDropdown)}
-                      className="flex items-center px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition-colors whitespace-nowrap"
+                      variant="outline"
+                      size="sm"
+                      className="whitespace-nowrap h-9"
                     >
                       更多
-                      <ChevronDownIcon className="ml-1 h-3 w-3 sm:h-4 sm:w-4" />
-                    </button>
+                      <ChevronDown className="ml-1 h-4 w-4" />
+                    </Button>
                     
                     {showDropdown && (
-                      <div className="absolute top-full right-0 mt-1 w-40 sm:w-48 bg-white rounded-md shadow-lg z-50">
-                        <div className="py-1">
+                      <Card className="absolute top-full right-0 mt-2 w-56 shadow-lg z-50">
+                        <CardContent className="p-1">
                           {hiddenTabs.map((tab) => (
-                            <button
+                            <Button
                               key={tab.id}
-                              onClick={() => handleTabClick(tab)}
-                              className={`block w-full text-left px-3 sm:px-4 py-2 text-xs sm:text-sm transition-colors ${
-                                activeTab?.id === tab.id
-                                  ? 'bg-blue-50 text-blue-700'
-                                  : 'text-gray-700 hover:bg-gray-100'
-                              }`}
+                              onClick={() => {
+                                handleTabClick(tab)
+                                setShowDropdown(false)
+                              }}
+                              variant={activeTab?.id === tab.id ? "secondary" : "ghost"}
+                              size="sm"
+                              className="w-full justify-start text-sm"
                             >
                               {tab.name}
-                            </button>
+                            </Button>
                           ))}
-                        </div>
-                      </div>
+                        </CardContent>
+                      </Card>
                     )}
                   </div>
                 )}
@@ -249,32 +299,32 @@ export function ProjectAccess() {
             </div>
             
             {/* 右侧占位 */}
-            <div className="hidden sm:block flex-shrink-0 w-32 md:w-48"></div>
+            <div className="flex-shrink-0 w-64"></div>
           </div>
         </div>
       </nav>
       
       {/* 内容区域 */}
-      <div className="h-[calc(100vh-4rem)]">
+      <div className="h-[calc(100vh-4rem)] w-full">
         {activeTab ? (
-          <div className="w-full h-full relative">
+          <div className="w-full h-full relative overflow-hidden">
             {iframeLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
+              <div className="absolute inset-0 flex items-center justify-center bg-muted z-10">
                 <div className="text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                  <p className="text-sm text-gray-600">正在加载 {activeTab.name}...</p>
+                  <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">正在加载 {activeTab.name}...</p>
                 </div>
               </div>
             )}
             
             {iframeError ? (
-              <div className="w-full h-full flex items-center justify-center bg-gray-50">
+              <div className="w-full h-full flex items-center justify-center bg-muted">
                 <div className="text-center max-w-md mx-auto p-6">
-                  <ExclamationTriangleIcon className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">页面加载失败</h3>
-                  <p className="text-sm text-gray-600 mb-4">{iframeError}</p>
+                  <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-foreground mb-2">页面加载失败</h3>
+                  <p className="text-sm text-muted-foreground mb-4">{iframeError}</p>
                   <div className="space-y-2">
-                    <button
+                    <Button
                       onClick={() => {
                         setIframeError('')
                         setIframeLoading(true)
@@ -284,18 +334,21 @@ export function ProjectAccess() {
                           iframe.src = iframe.src
                         }
                       }}
-                      className="w-full px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      className="w-full"
                     >
+                      <RotateCcw className="mr-2 h-4 w-4" />
                       重新加载
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => openInNewTab(activeTab.url)}
-                      className="w-full px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                      variant="secondary"
+                      className="w-full"
                     >
+                      <ExternalLink className="mr-2 h-4 w-4" />
                       在新标签页中打开
-                    </button>
+                    </Button>
                   </div>
-                  <p className="text-xs text-gray-500 mt-3">
+                  <p className="text-xs text-muted-foreground mt-3">
                     目标地址: <span className="font-mono">{activeTab.url}</span>
                   </p>
                 </div>
@@ -313,25 +366,22 @@ export function ProjectAccess() {
           </div>
         ) : (
           <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">欢迎访问 {project?.name}</h3>
+            <div className="text-center max-w-lg mx-auto">
+              <div className="mx-auto h-24 w-24 bg-primary rounded-2xl flex items-center justify-center mb-8">
+                <FolderOpen className="h-12 w-12 text-primary-foreground" />
+              </div>
+              <h3 className="text-3xl font-bold text-foreground mb-4">欢迎访问 {project?.name}</h3>
               {tabs.length === 0 ? (
-                <p className="text-gray-600">暂无可用的标签页</p>
+                <p className="text-muted-foreground text-lg">暂无可用的标签页</p>
               ) : (
-                <p className="text-gray-600">请选择一个标签页开始浏览</p>
+                <p className="text-muted-foreground text-lg">请选择一个标签页开始浏览</p>
               )}
             </div>
           </div>
         )}
       </div>
       
-      {/* 点击外部关闭下拉菜单 */}
-      {showDropdown && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => setShowDropdown(false)}
-        />
-      )}
+
     </div>
   )
 }

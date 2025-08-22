@@ -1,14 +1,26 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { DndProvider, useDrag, useDrop } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
 import { 
-  PlusIcon, 
-  PencilIcon, 
-  TrashIcon, 
-  ArrowLeftIcon,
-  Bars3Icon
-} from '@heroicons/react/24/outline'
+  Plus, 
+  Edit, 
+  Trash2, 
+  ArrowLeft,
+  GripVertical,
+  Link as LinkIcon,
+  FileText,
+  Loader2,
+  FolderOpen,
+  Save
+} from 'lucide-react'
+import { Button } from '../components/ui/button'
+import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/dialog'
+import { Badge } from '../components/ui/badge'
+import { Separator } from '../components/ui/separator'
 import { useProjectStore } from '../store/projectStore'
 import { createTab, updateTab, deleteTab, updateTabsOrder } from '../lib/projects'
 import type { Tab } from '../lib/supabase'
@@ -109,13 +121,12 @@ export function TabManagement() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">项目不存在</h1>
-          <Link
-            to="/admin/projects"
-            className="text-blue-600 hover:text-blue-500"
-          >
-            返回项目列表
-          </Link>
+          <h1 className="text-2xl font-bold text-foreground mb-4">项目不存在</h1>
+          <Button asChild variant="link">
+            <Link to="/admin/projects">
+              返回项目列表
+            </Link>
+          </Button>
         </div>
       </div>
     )
@@ -123,70 +134,80 @@ export function TabManagement() {
   
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+      <div className="min-h-screen bg-background">
         {/* 顶部导航 */}
-        <nav className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <nav className="bg-card border-b h-16 w-full">
+          <div className="w-full px-6">
             <div className="flex justify-between h-16">
               <div className="flex items-center space-x-4">
-                <Link
-                  to={`/project/${currentProject.id}`}
-                  className="flex items-center space-x-2 px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <ArrowLeftIcon className="h-5 w-5" />
-                  <span className="font-medium">返回项目</span>
-                </Link>
-                <div className="h-6 w-px bg-gray-300"></div>
+                <Button asChild variant="outline">
+                  <Link to={`/project/${currentProject.id}`}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    返回项目管理
+                  </Link>
+                </Button>
+                <Separator orientation="vertical" className="h-6" />
                 <div>
-                  <h1 className="text-lg font-bold text-gray-900">
-                    {currentProject.name}
+                  <h1 className="text-foreground text-lg font-semibold">
+                    标签页管理
                   </h1>
-                  <p className="text-sm text-gray-600">标签页管理</p>
                 </div>
               </div>
               <div className="flex items-center">
-                <button
+                <Button
                   onClick={() => setShowCreateModal(true)}
-                  className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-xl shadow-lg text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 hover:shadow-xl"
                 >
-                  <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
+                  <Plus className="mr-2 h-4 w-4" />
                   添加标签页
-                </button>
+                </Button>
               </div>
             </div>
           </div>
         </nav>
         
-        {/* 主要内容 */}
-        <div className="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8">
-          <div className="px-4 sm:px-0">
+        {/* 主内容区域 */}
+        <div className="flex-1 p-6 w-full">
+          <div className="max-w-6xl mx-auto">
             {currentTabs.length === 0 ? (
               <div className="text-center py-16">
-                <div className="mx-auto h-24 w-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                  <svg className="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
+                <div className="mx-auto h-24 w-24 bg-muted rounded-2xl flex items-center justify-center mb-8">
+                  <FolderOpen className="h-12 w-12 text-muted-foreground" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">暂无标签页</h3>
-                <p className="text-gray-500 mb-8 max-w-sm mx-auto">为您的项目添加一些有用的链接，让团队成员快速访问相关资源。</p>
-                <button
+                <h3 className="text-2xl font-bold text-foreground mb-4">暂无标签页</h3>
+                <p className="text-muted-foreground text-lg mb-8">开始创建您的第一个标签页</p>
+                <Button
                   onClick={() => setShowCreateModal(true)}
-                  className="inline-flex items-center px-6 py-3 border border-transparent shadow-lg text-sm font-medium rounded-xl text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 hover:shadow-xl"
                 >
-                  <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
-                  添加第一个标签页
-                </button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  创建标签页
+                </Button>
               </div>
             ) : (
               <div className="space-y-6">
-                <div className="bg-blue-50/80 backdrop-blur-sm border border-blue-200/50 rounded-xl p-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="h-8 w-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <Bars3Icon className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-blue-900">拖拽排序</p>
-                      <p className="text-xs text-blue-700">您可以拖拽标签页来调整显示顺序</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-3xl font-bold text-foreground">
+                      {currentProject.name} - 标签页管理
+                    </h2>
+                    <p className="text-muted-foreground mt-2 text-lg">
+                      管理项目中的标签页，支持拖拽排序
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="bg-muted/30 rounded-lg">
+                  <div className="p-3">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex-shrink-0">
+                        <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center">
+                          <FolderOpen className="h-3 w-3 text-muted-foreground" />
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          拖拽标签页可以调整显示顺序，点击标签页名称可以进行重命名操作
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -255,51 +276,60 @@ function DraggableTabItem({ tab, index, moveTab, onEdit, onDelete }: {
     }
   })
   
-
+  const dragDropRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (node) {
+        drag(drop(node))
+      }
+    },
+    [drag, drop]
+  )
   
   return (
-    <div
-      ref={(node) => drag(drop(node))}
-      className={`group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-6 cursor-move transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${
-        isDragging ? 'opacity-50 scale-95' : 'opacity-100'
+    <Card
+      ref={dragDropRef}
+      className={`group cursor-move ${
+        isDragging ? 'opacity-50' : ''
       }`}
     >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4 flex-1 min-w-0">
-          <div className="h-10 w-10 bg-gray-100 rounded-xl flex items-center justify-center group-hover:bg-blue-50 transition-colors">
-            <Bars3Icon className="h-5 w-5 text-gray-400 group-hover:text-blue-600" />
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3 flex-1 min-w-0">
+            <div className="h-8 w-8 bg-muted rounded-lg flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+              <GripVertical className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center space-x-3 mb-2">
+                <h3 className="text-lg font-semibold text-foreground truncate">{tab.name}</h3>
+                <Badge variant="secondary" className="h-2 w-2 p-0 bg-green-400" title="链接有效" />
+              </div>
+              <div className="flex items-center space-x-2">
+                <LinkIcon className="h-4 w-4 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground truncate">{tab.url}</p>
+              </div>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center space-x-3 mb-2">
-              <h3 className="text-lg font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors">{tab.name}</h3>
-              <div className="h-2 w-2 bg-green-400 rounded-full" title="链接有效"></div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-              </svg>
-              <p className="text-sm text-gray-600 truncate">{tab.url}</p>
-            </div>
+          <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button
+              onClick={onEdit}
+              variant="outline"
+              size="sm"
+            >
+              <Edit className="mr-2 h-4 w-4" />
+              编辑
+            </Button>
+            <Button
+              onClick={onDelete}
+              variant="outline"
+              size="sm"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              删除
+            </Button>
           </div>
         </div>
-        <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
-            onClick={onEdit}
-            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-            title="编辑标签页"
-          >
-            <PencilIcon className="h-5 w-5" />
-          </button>
-          <button
-            onClick={onDelete}
-            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-            title="删除标签页"
-          >
-            <TrashIcon className="h-5 w-5" />
-          </button>
-        </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -319,82 +349,76 @@ function TabModal({ tab, isOpen, onClose, onSubmit, isSubmitting }: {
     onSubmit({ name, url })
   }
   
-  if (!isOpen) return null
-  
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-      <div className="relative w-full max-w-md bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-200/50">
-        <div className="p-6">
-          <div className="flex items-center space-x-3 mb-6">
-            <div className="h-10 w-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-              <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-              </svg>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <div className="flex items-center space-x-3 mb-2">
+            <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center">
+              <FileText className="h-6 w-6 text-primary-foreground" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-gray-900">
+              <DialogTitle className="text-xl font-bold">
                 {tab ? '编辑标签页' : '添加标签页'}
-              </h3>
-              <p className="text-sm text-gray-600">
+              </DialogTitle>
+              <DialogDescription>
                 {tab ? '修改标签页信息' : '为项目添加新的链接'}
-              </p>
+              </DialogDescription>
             </div>
           </div>
+        </DialogHeader>
+        
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="name">标签页名称</Label>
+            <Input
+              id="name"
+              type="text"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="例如：项目文档、设计稿等"
+            />
+          </div>
           
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">标签页名称</label>
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                placeholder="例如：项目文档、设计稿等"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">链接地址</label>
-              <input
-                type="url"
-                required
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                placeholder="https://example.com"
-              />
-            </div>
-            
-            <div className="flex space-x-3 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-              >
-                取消
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex-1 px-4 py-3 border border-transparent rounded-xl shadow-lg text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-xl"
-              >
-                {isSubmitting ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    保存中...
-                  </>
-                ) : (
-                  tab ? '更新标签页' : '添加标签页'
-                )}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
+          <div className="space-y-2">
+            <Label htmlFor="url">链接地址</Label>
+            <Input
+              id="url"
+              type="url"
+              required
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://example.com"
+            />
+          </div>
+          
+          <div className="flex space-x-3 pt-4">
+            <Button
+              type="button"
+              onClick={onClose}
+              variant="outline"
+              className="flex-1"
+            >
+              取消
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex-1 shadow-lg hover:shadow-xl transition-all duration-200"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                  保存中...
+                </>
+              ) : (
+                tab ? '更新标签页' : '添加标签页'
+              )}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
