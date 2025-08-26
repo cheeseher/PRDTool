@@ -1,4 +1,3 @@
-import React, { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useProjectStore } from '../store/projectStore'
 import { useAuthStore } from '../store/authStore'
@@ -19,73 +18,44 @@ import {
   LogOut, 
   Loader2,
   MoreHorizontal,
-  Check 
+  Check,
+  Eye,
+  Users
 } from 'lucide-react'
+import { useState, useEffect } from 'react'
 
 export function MainWorkspace() {
-  const { id } = useParams<{ id: string }>()
-  const { 
-    projects, 
-    currentProject, 
-    currentTabs, 
-    isLoading, 
-    fetchProjects, 
-    fetchProject, 
-    fetchProjectTabs 
-  } = useProjectStore()
+  const { projectId } = useParams<{ projectId: string }>()
+  const { projects, currentTabs, isLoading, fetchProjects, fetchProjectTabs } = useProjectStore()
   const { user, logout } = useAuthStore()
   const { toast } = useToast()
-  const [activeTab, setActiveTab] = useState<Tab | null>(null)
+  
+  const [activeTab, setActiveTab] = useState<string>('')
+  const [showMoreDropdown, setShowMoreDropdown] = useState(false)
   const [showProjectDropdown, setShowProjectDropdown] = useState(false)
   const [showUserDropdown, setShowUserDropdown] = useState(false)
-  const [showTabDropdown, setShowTabDropdown] = useState(false)
-  const [visibleTabs, setVisibleTabs] = useState<Tab[]>([])
-  const tabDropdownRef = useRef<HTMLDivElement>(null)
-  const projectDropdownRef = useRef<HTMLDivElement>(null)
-  const userDropdownRef = useRef<HTMLDivElement>(null)
-  const [hiddenTabs, setHiddenTabs] = useState<Tab[]>([])
-  const [isCopied, setIsCopied] = useState(false)
+  const [copiedToken, setCopiedToken] = useState(false)
+  
+  const project = projects.find(p => p.id === projectId)
+  const projectTabs = (currentTabs || []).filter(tab => tab.project_id === projectId).sort((a, b) => a.order_index - b.order_index)
+  
+  // 计算可见和隐藏的标签页
+  const maxVisible = 4
+  const visibleTabs = projectTabs.slice(0, maxVisible)
+  const hiddenTabs = projectTabs.slice(maxVisible)
   
   useEffect(() => {
-    fetchProjects()
-    if (id) {
-      fetchProject(id)
-      fetchProjectTabs(id)
+    if (projectId) {
+      fetchProjects()
+      fetchProjectTabs(projectId)
     }
-  }, [id])
-
-  // 点击外部关闭下拉菜单
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (tabDropdownRef.current && !tabDropdownRef.current.contains(event.target as Node)) {
-        setShowTabDropdown(false)
-      }
-      if (projectDropdownRef.current && !projectDropdownRef.current.contains(event.target as Node)) {
-        setShowProjectDropdown(false)
-      }
-      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target as Node)) {
-        setShowUserDropdown(false)
-      }
-    }
-
-    if (showTabDropdown || showProjectDropdown || showUserDropdown) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [showTabDropdown, showProjectDropdown, showUserDropdown])
+  }, [projectId])
   
   useEffect(() => {
-    // 计算可见和隐藏的标签页
-    if (currentTabs.length > 0) {
-      const maxVisible = 5
-      setVisibleTabs(currentTabs.slice(0, maxVisible))
-      setHiddenTabs(currentTabs.slice(maxVisible))
-      
-      if (!activeTab && currentTabs.length > 0) {
-        setActiveTab(currentTabs[0])
-      }
+    if (projectTabs.length > 0 && !activeTab) {
+      setActiveTab(projectTabs[0].id)
     }
-  }, [currentTabs, activeTab])
+  }, [projectTabs, activeTab])
   
   const handleLogout = async () => {
     try {
@@ -96,347 +66,388 @@ export function MainWorkspace() {
     }
   }
   
-  const handleTabClick = (tab: Tab) => {
-    setActiveTab(tab)
-    setShowTabDropdown(false)
+  const handleTabClick = (tabId: string) => {
+    setActiveTab(tabId)
+    setShowMoreDropdown(false)
   }
   
-  const copyAccessLink = async () => {
-    if (currentProject) {
-      try {
-        const link = `${window.location.origin}/access/${currentProject.token}`
-        await navigator.clipboard.writeText(link)
-        
-        // 设置复制状态
-        setIsCopied(true)
-        
-        // 显示成功Toast
-        toast({
-          title: "复制成功",
-          description: "访问链接已复制到剪贴板",
-          duration: 2000,
-        })
-        
-        // 2秒后移除成功状态
-        setTimeout(() => {
-          setIsCopied(false)
-        }, 2000)
-      } catch (error) {
-        toast({
-          title: "复制失败",
-          description: "无法复制到剪贴板，请手动复制",
-          variant: "destructive",
-        })
-      }
+  const copyProjectLink = async () => {
+    if (!project) return
+    
+    try {
+      setCopiedToken(true)
+      const link = `${window.location.origin}/access/${project.token}`
+      await navigator.clipboard.writeText(link)
+      
+      toast({
+        title: "复制成功",
+        description: "项目访问链接已复制到剪贴板",
+        duration: 2000,
+      })
+      
+      setTimeout(() => setCopiedToken(false), 500)
+    } catch (error) {
+      setCopiedToken(false)
+      toast({
+        title: "复制失败",
+        description: "无法复制到剪贴板，请手动复制",
+        variant: "destructive",
+      })
     }
   }
   
+  const activeTabData = currentTabs.find(tab => tab.id === activeTab)
+  
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="relative mb-4">
-            <Loader2 className="h-16 w-16 animate-spin text-primary mx-auto" />
-          </div>
-          <h3 className="text-lg font-medium text-foreground mb-2">加载中</h3>
-          <p className="text-muted-foreground">正在为您准备工作空间...</p>
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">加载项目中...</p>
         </div>
       </div>
     )
   }
   
-  if (!currentProject) {
+  if (!project) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground mb-4">项目不存在</h1>
-          <Button asChild variant="link">
-            <Link to="/admin/projects">
-              返回项目列表
-            </Link>
-          </Button>
-        </div>
+        <Card className="w-full max-w-md">
+          <CardContent className="text-center py-8">
+            <FolderOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">项目未找到</h3>
+            <p className="text-muted-foreground mb-4">请检查项目ID是否正确</p>
+            <Button asChild>
+              <Link to="/projects">返回项目列表</Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     )
   }
   
   return (
     <div className="min-h-screen bg-background">
-      {/* 顶部导航栏 */}
-      <nav className="bg-card border-b h-16 sticky top-0 z-50 w-full">
-        <div className="w-full px-6">
-          <div className="flex items-center h-16">
-            {/* 左侧：项目切换器 */}
-            <div className="flex-shrink-0 w-64">
-              <div ref={projectDropdownRef} className="relative">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowProjectDropdown(!showProjectDropdown)}
-                  className="flex items-center space-x-2 w-full justify-between"
-                  size="sm"
-                >
-                  <div className="flex items-center space-x-2 min-w-0">
-                    <Avatar className="h-6 w-6">
-                      <AvatarFallback className="text-xs bg-primary text-primary-foreground">
-                        {currentProject.name.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm font-medium truncate">{currentProject.name}</span>
-                  </div>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                </Button>
-                
-                {showProjectDropdown && (
-                  <Card className="absolute top-full left-0 mt-2 w-80 shadow-lg z-50">
-                    <CardContent className="p-1">
-                      {projects.map((project) => (
-                        <Button
-                          key={project.id}
-                          asChild
-                          variant={project.id === currentProject.id ? "secondary" : "ghost"}
-                          className="w-full justify-start h-auto p-3 mb-1"
-                          onClick={() => setShowProjectDropdown(false)}
-                        >
-                          <Link to={`/project/${project.id}`}>
-                            <div className="text-left">
-                              <div className="font-medium">{project.name}</div>
-                              {project.description && (
-                                <div className="text-xs text-muted-foreground truncate">
-                                  {project.description}
-                                </div>
-                              )}
-                            </div>
-                          </Link>
-                        </Button>
-                      ))}
-                      <Separator className="my-1" />
-                      <Button
-                        asChild
-                        variant="ghost"
-                        className="w-full justify-start"
-                        onClick={() => setShowProjectDropdown(false)}
-                      >
-                        <Link to="/admin/projects">
-                          管理所有项目
-                        </Link>
-                      </Button>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            </div>
-            
-            {/* 中间：标签页 */}
-            <div className="flex-1 flex items-center justify-center px-6 overflow-hidden">
-              <div className="flex items-center space-x-3 overflow-x-auto scrollbar-hide">
-                {visibleTabs.map((tab) => (
-                  <Button
-                    key={tab.id}
-                    onClick={() => handleTabClick(tab)}
-                    variant={activeTab?.id === tab.id ? "default" : "outline"}
-                    size="sm"
-                    className="flex-shrink-0 whitespace-nowrap"
-                  >
-                    <span className="truncate max-w-32">{tab.name}</span>
-                  </Button>
-                ))}
-                
-                {hiddenTabs.length > 0 && (
-                  <div ref={tabDropdownRef} className="relative flex-shrink-0">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowTabDropdown(!showTabDropdown)}
-                      className="flex items-center whitespace-nowrap"
-                    >
-                      更多
-                      <ChevronDown className="ml-1 h-4 w-4" />
-                    </Button>
-                    
-                    {showTabDropdown && (
-                      <Card className="absolute top-full right-0 mt-1 w-56 shadow-lg z-50">
-                        <CardContent className="p-1">
-                          {hiddenTabs.map((tab) => (
-                            <Button
-                              key={tab.id}
-                              variant={activeTab?.id === tab.id ? "secondary" : "ghost"}
-                              size="sm"
-                              onClick={() => handleTabClick(tab)}
-                              className="w-full justify-start text-sm"
-                            >
-                              {tab.name}
-                            </Button>
-                          ))}
-                        </CardContent>
-                      </Card>
-                    )}
-                  </div>
-                )}
-                
-                {/* 添加标签页按钮 */}
-                <Button
-                  asChild
-                  variant="outline"
-                  size="sm"
-                  className="flex-shrink-0"
-                >
-                  <Link to={`/project/${currentProject.id}/manage`} title="管理标签页">
-                    <Plus className="h-4 w-4" />
-                  </Link>
-                </Button>
-              </div>
-            </div>
-            
-            {/* 右侧：用户菜单 */}
-            <div className="flex-shrink-0 flex items-center space-x-3">
+      {/* 顶部导航栏 - 使用 shadcn/ui 官方样式 */}
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-14 items-center">
+          {/* 左侧：项目信息和标签页 */}
+          <div className="mr-4 flex items-center space-x-4">
+            {/* 项目下拉菜单 */}
+            <div className="relative">
               <Button
-                variant={isCopied ? "default" : "outline"}
-                size="sm"
-                onClick={copyAccessLink}
-                disabled={isCopied}
+                variant="ghost"
+                onClick={() => setShowProjectDropdown(!showProjectDropdown)}
+                className="flex items-center space-x-2"
               >
-                {isCopied ? (
-                  <>
-                    <Loader2 className="h-3 w-3 animate-spin mr-2" />
-                    已复制
-                  </>
-                ) : (
-                  <>
-                    <LinkIcon className="mr-2 h-4 w-4" />
-                    复制链接
-                  </>
-                )}
+                <Avatar className="h-6 w-6">
+                  <AvatarFallback className="text-xs">
+                    {project.name.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="font-medium">{project.name}</span>
+                <ChevronDown className="h-4 w-4" />
               </Button>
               
-              <div ref={userDropdownRef} className="relative">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowUserDropdown(!showUserDropdown)}
-                  className="flex items-center space-x-2"
-                >
-                  <Avatar className="h-6 w-6">
-                    <AvatarFallback className="text-xs">
-                      {user?.name?.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-sm font-medium truncate max-w-32">{user?.name}</span>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                </Button>
-                
-                {showUserDropdown && (
-                  <Card className="absolute top-full right-0 mt-2 w-56 shadow-lg z-50">
-                    <CardContent className="p-1">
-                      <Button
-                        asChild
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={() => setShowUserDropdown(false)}
-                      >
-                        <Link to={`/project/${currentProject.id}/manage`}>
-                          <Settings className="mr-2 h-4 w-4" />
-                          管理标签页
-                        </Link>
-                      </Button>
-                      <Button
-                        asChild
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={() => setShowUserDropdown(false)}
-                      >
-                        <Link to="/admin/projects">
-                          <FolderOpen className="mr-2 h-4 w-4" />
-                          项目管理
-                        </Link>
-                      </Button>
-                      <Separator className="my-1" />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setShowUserDropdown(false)
-                          handleLogout()
-                        }}
-                        className="w-full justify-start"
-                      >
-                        <LogOut className="mr-2 h-4 w-4" />
-                        退出登录
-                      </Button>
+              {showProjectDropdown && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setShowProjectDropdown(false)} 
+                  />
+                  <Card className="absolute top-full left-0 mt-2 w-80 z-50">
+                    <CardContent className="p-4">
+                      <div className="space-y-3">
+                        <div>
+                          <h4 className="font-medium">{project.name}</h4>
+                          {project.description && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {project.description}
+                            </p>
+                          )}
+                        </div>
+                        <Separator />
+                        <div className="space-y-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={copyProjectLink}
+                            disabled={copiedToken}
+                            className="w-full justify-start"
+                          >
+                            {copiedToken ? (
+                              <Check className="h-4 w-4 mr-2" />
+                            ) : (
+                              <LinkIcon className="h-4 w-4 mr-2" />
+                            )}
+                            {copiedToken ? '已复制' : '复制访问链接'}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            asChild
+                            className="w-full justify-start"
+                          >
+                            <Link to={`/project/${project.id}/tabs`}>
+                              <Settings className="h-4 w-4 mr-2" />
+                              管理标签页
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            asChild
+                            className="w-full justify-start"
+                          >
+                            <Link to="/projects">
+                              <Eye className="h-4 w-4 mr-2" />
+                              所有项目
+                            </Link>
+                          </Button>
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
-                )}
-              </div>
+                </>
+              )}
+            </div>
+            
+            <Separator orientation="vertical" className="h-4" />
+            
+            {/* 标签页导航 */}
+            <div className="flex items-center space-x-1">
+              {visibleTabs.map((tab) => (
+                <Button
+                  key={tab.id}
+                  variant={activeTab === tab.id ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => handleTabClick(tab.id)}
+                  className="text-sm"
+                >
+                  {tab.name}
+                </Button>
+              ))}
+              
+              {/* 更多标签页按钮 */}
+              {hiddenTabs.length > 0 && (
+                <div className="relative">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowMoreDropdown(!showMoreDropdown)}
+                    className="flex items-center space-x-1"
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                    <span>更多 ({hiddenTabs.length})</span>
+                  </Button>
+                  
+                  {showMoreDropdown && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-40" 
+                        onClick={() => setShowMoreDropdown(false)} 
+                      />
+                      <Card className="absolute top-full right-0 mt-2 w-56 z-50">
+                        <CardContent className="p-2">
+                          <div className="space-y-1">
+                            {hiddenTabs.map((tab) => (
+                              <Button
+                                key={tab.id}
+                                variant={activeTab === tab.id ? "default" : "ghost"}
+                                size="sm"
+                                onClick={() => handleTabClick(tab.id)}
+                                className="w-full justify-start text-sm"
+                              >
+                                {tab.name}
+                              </Button>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </>
+                  )}
+                </div>
+              )}
+              
+              {/* 添加标签页按钮 */}
+              <Button
+                variant="ghost"
+                size="sm"
+                asChild
+              >
+                <Link to={`/project/${project.id}/tabs`}>
+                  <Plus className="h-4 w-4" />
+                </Link>
+              </Button>
             </div>
           </div>
-        </div>
-      </nav>
-      
-      {/* 内容区域 */}
-      <div className="h-[calc(100vh-3.5rem)]">
-        {activeTab ? (
-          <iframe
-            src={activeTab.url}
-            className="w-full h-full border-0"
-            title={activeTab.name}
-            onLoad={() => console.log(`Loaded: ${activeTab.name}`)}
-            onError={() => console.error(`Failed to load: ${activeTab.name}`)}
-          />
-        ) : (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center max-w-lg mx-auto">
-              <div className="mx-auto h-24 w-24 bg-primary rounded-2xl flex items-center justify-center mb-8">
-                <FolderOpen className="h-12 w-12 text-primary-foreground" />
-              </div>
-              <h3 className="text-3xl font-bold text-foreground mb-4">
-                欢迎使用 {currentProject.name}
-              </h3>
-              {currentTabs.length === 0 ? (
-                <div>
-                  <p className="text-muted-foreground mb-6">暂无标签页，开始添加一些有用的链接，让团队成员快速访问相关资源。</p>
-                  <Button
-                    asChild
-                    size="lg"
-                  >
-                    <Link to={`/project/${currentProject.id}/manage`}>
-                      <Plus className="mr-2 h-5 w-5" />
-                      添加第一个标签页
-                    </Link>
-                  </Button>
-                </div>
-              ) : (
-                <div>
-                  <p className="text-muted-foreground mb-6">请从上方选择一个标签页开始浏览，或者添加新的链接。</p>
-                  <div className="flex justify-center space-x-3">
-                    <Button
-                      asChild
-                      variant="outline"
-                    >
-                      <Link to={`/project/${currentProject.id}/manage`}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        管理标签页
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
+          
+          {/* 右侧：用户菜单 */}
+          <div className="ml-auto">
+            <div className="relative">
+              <Button
+                variant="ghost"
+                onClick={() => setShowUserDropdown(!showUserDropdown)}
+                className="flex items-center space-x-2"
+              >
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback>
+                    {user?.name?.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium">{user?.name}</span>
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+              
+              {showUserDropdown && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setShowUserDropdown(false)} 
+                  />
+                  <Card className="absolute top-full right-0 mt-2 w-56 z-50">
+                    <CardContent className="p-2">
+                      <div className="space-y-1">
+                        <div className="px-2 py-1.5">
+                          <p className="text-sm font-medium">{user?.name}</p>
+                          <p className="text-xs text-muted-foreground">{user?.email}</p>
+                        </div>
+                        <Separator />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleLogout}
+                          className="w-full justify-start text-sm"
+                        >
+                          <LogOut className="h-4 w-4 mr-2" />
+                          退出登录
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
               )}
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      </header>
       
-      {/* 点击外部关闭下拉菜单 */}
-      {(showProjectDropdown || showUserDropdown || showTabDropdown) && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => {
-            setShowProjectDropdown(false)
-            setShowUserDropdown(false)
-            setShowTabDropdown(false)
-          }}
-        />
-      )}
+      {/* 主内容区域 */}
+      <main className="flex-1">
+        {projectTabs.length === 0 ? (
+          /* 空状态 */
+          <div className="container py-16">
+            <Card className="max-w-md mx-auto">
+              <CardContent className="text-center py-8">
+                <Plus className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">还没有标签页</h3>
+                <p className="text-muted-foreground mb-4">
+                  为项目添加第一个标签页开始工作
+                </p>
+                <Button asChild>
+                  <Link to={`/project/${project.id}/tabs`}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    添加标签页
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        ) : activeTabData ? (
+          /* 标签页内容 */
+          <div className="h-[calc(100vh-3.5rem)]">
+            <iframe
+              src={activeTabData.url}
+              className="w-full h-full border-0"
+              title={activeTabData.name}
+            />
+          </div>
+        ) : (
+          /* 欢迎页面 */
+          <div className="container py-16">
+            <Card className="max-w-2xl mx-auto">
+              <CardContent className="text-center py-12">
+                <div className="mb-6">
+                  <Avatar className="h-20 w-20 mx-auto mb-4">
+                    <AvatarFallback className="text-2xl">
+                      {project.name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <h1 className="text-3xl font-bold mb-2">欢迎来到 {project.name}</h1>
+                  {project.description && (
+                    <p className="text-lg text-muted-foreground mb-6">
+                      {project.description}
+                    </p>
+                  )}
+                </div>
+                
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Card>
+                    <CardContent className="p-6 text-center">
+                      <Settings className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
+                      <h3 className="font-semibold mb-2">管理标签页</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        添加、编辑和排序项目标签页
+                      </p>
+                      <Button asChild size="sm">
+                        <Link to={`/project/${project.id}/tabs`}>
+                          管理标签页
+                        </Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-6 text-center">
+                      <LinkIcon className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
+                      <h3 className="font-semibold mb-2">分享项目</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        复制访问链接分享给团队成员
+                      </p>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={copyProjectLink}
+                        disabled={copiedToken}
+                      >
+                        {copiedToken ? (
+                          <>
+                            <Check className="h-4 w-4 mr-2" />
+                            已复制
+                          </>
+                        ) : (
+                          <>
+                            <LinkIcon className="h-4 w-4 mr-2" />
+                            复制链接
+                          </>
+                        )}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </div>
+                
+                {currentTabs.length > 0 && (
+                  <div className="mt-8">
+                    <h3 className="text-lg font-semibold mb-4">项目标签页</h3>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      {currentTabs.map((tab) => (
+                        <Button
+                          key={tab.id}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleTabClick(tab.id)}
+                        >
+                          {tab.name}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </main>
     </div>
   )
 }

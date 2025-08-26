@@ -230,8 +230,8 @@ export function ProjectAccess() {
     <div className="min-h-screen bg-background">
       {/* 导航栏 */}
       <nav className="bg-card border-b h-16 w-full">
-        <div className="w-full px-6">
-          <div className="flex items-center justify-between h-full">
+        <div className="w-full">
+          <div className="flex items-center justify-between h-full px-6">
             {/* 项目名称 */}
             <div className="flex items-center space-x-4 min-w-0 flex-shrink-0 w-64">
               <Avatar className="h-8 w-8">
@@ -274,8 +274,8 @@ export function ProjectAccess() {
                     </Button>
                     
                     {showDropdown && (
-                      <Card className="absolute top-full right-0 mt-2 w-56 shadow-lg z-50">
-                        <CardContent className="p-1">
+                      <div className="absolute top-full right-0 mt-2 w-56 bg-card border rounded-lg shadow-lg z-50">
+                        <div className="p-1">
                           {hiddenTabs.map((tab) => (
                             <Button
                               key={tab.id}
@@ -285,13 +285,13 @@ export function ProjectAccess() {
                               }}
                               variant={activeTab?.id === tab.id ? "secondary" : "ghost"}
                               size="sm"
-                              className="w-full justify-start text-sm"
+                              className="w-full justify-start text-sm h-8"
                             >
                               {tab.name}
                             </Button>
                           ))}
-                        </CardContent>
-                      </Card>
+                        </div>
+                      </div>
                     )}
                   </div>
                 )}

@@ -59,6 +59,39 @@ iframe {
   }
 }
 
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @keyframes shake {
   0%, 100% {
     transform: translateX(0);
@@ -80,12 +113,36 @@ iframe {
   }
 }
 
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
 .animate-fade-in {
   animation: fadeIn 0.6s ease-out;
 }
 
 .animate-slide-up {
   animation: slideUp 0.8s ease-out;
+  animation-fill-mode: both;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.6s ease-out;
+  animation-fill-mode: both;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.6s ease-out;
+  animation-fill-mode: both;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.4s ease-out;
   animation-fill-mode: both;
 }
 
@@ -96,6 +153,40 @@ iframe {
 .animate-fade-in-slow {
   animation: fadeInSlow 1.2s ease-out;
   animation-fill-mode: both;
+}
+
+.animate-pulse-soft {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* 交互增强 */
+.hover-lift {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.focus-ring {
+  transition: all 0.2s ease-in-out;
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* 渐变背景 */
+.gradient-bg {
+  background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%);
+}
+
+.glass-effect {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 /* 毛玻璃效果增强 */
